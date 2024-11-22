@@ -1,6 +1,8 @@
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { AVATARS } from '../../images';
+import Cookies from 'universal-cookie';
 
 interface FormData {
     username: string;
@@ -8,6 +10,8 @@ interface FormData {
 }
 
 export const SignIn = () => {
+    const cookies = new Cookies();
+
     const schema = yup.object().shape({
         username: yup
         .string()
@@ -16,10 +20,41 @@ export const SignIn = () => {
         name: yup.string().required("Name is required"),
     });
 
-    const onSubmit: SubmitHandler<FormData> = (data, event) => {
+    const onSubmit: SubmitHandler<FormData> = async (data, event) => {
         event?.preventDefault();
         const { username, name } = data;
-        console.log(username, name);
+        
+        const response = await fetch('http://localhost:4000/auth/createUser', {
+            method: "POST", 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({username, name, image: AVATARS[0]}), 
+        });
+
+        console.log(response);
+
+        if (!response.ok) {
+            alert('Failed to create user');
+            return;
+        }
+
+        const responceData = await response.json();
+
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 1);
+
+        cookies.set("token", responceData.token, {
+            expires,
+        });
+
+        cookies.set("username", responceData.username, {
+            expires,
+        });
+
+        cookies.set("name", responceData.name, {
+            expires,
+        });
     };
 
     const {
